@@ -1,16 +1,6 @@
-import {Observable, ReplaySubject, Subject} from 'rx'
+import {Observable, ReplaySubject} from 'rx'
 
 const proxiesStore = {}
-
-let logToConsoleError = typeof console !== `undefined` && console.error
-  ? error => { console.error(error.stack || error) }
-: Function.prototype
-
-
-// let logToConsoleError = (err) =>{
-//   console.warn('cycle-hmr logToConsoleError', err)
-// }
-//
 
 const isObservable = (obj) => {
   return obj && typeof obj.subscribe === 'function'
@@ -41,8 +31,8 @@ const makeSinkProxyObservable = (sink) => {
   return proxy
 }
 
-const makeSinkProxySubject = (sink) => {
-  let subject = new ReplaySubject(0)
+const makeSinkProxySubject = (sink, replayCount = 0) => {
+  let subject = new ReplaySubject(replayCount)
   return {
     stream: subject,
     observer: subject,
@@ -50,15 +40,12 @@ const makeSinkProxySubject = (sink) => {
   }
 }
 
-const makeSinkProxiesSubjects = (sinks) =>
-  _makeSinkProxies(sinks, makeSinkProxySubject)
+const makeSinkProxiesSubjects = (sinks, replayCount) =>
+  _makeSinkProxies(sinks, (sink) => makeSinkProxySubject(sink, replayCount))
 
 
 const makeSinkProxiesObservables = (sinks) =>
   _makeSinkProxies(sinks, makeSinkProxyObservable)
-
-//const makeSinkProxies = makeSinkProxiesSubjects
-const makeSinkProxies = makeSinkProxiesObservables
 
 const getProxyStreams = (proxies) => {
   return Object.keys(proxies).reduce((obj, key) => {
@@ -92,21 +79,28 @@ const UnsubscribeProxies = (proxies) => {
   }, {})
 }
 
-export const hmrProxy = (dataflow, proxyId) => {
+export const hmrProxy = (dataflow, proxyId, options = {}) => {
   
   if (typeof dataflow !== 'function'){
     return dataflow
   }
+
+  if (typeof proxyId !== 'string'){
+    throw new Error('You should provider proxy ID string value')
+  }
+  const makeSinkProxies = options.useSubject ?
+    (sinks) => makeSinkProxiesSubjects(parseInt(options.useSubject) || 0)
+  : makeSinkProxiesObservables
   
   console.warn('[Cycle HRM] proxy created', proxyId)
   let proxiedInstances = proxiesStore[proxyId]
   
   if (proxiedInstances){
-    proxiedInstances.forEach(proxied => {
+    proxiedInstances.forEach(({proxies, sources, rest}) => {
       console.warn('[Cycle HRM] proxy', proxyId, 'reload')
-      UnsubscribeProxies(proxied.proxies)
-      let sinks = dataflow(proxied.sources)
-      SubscribeProxies(proxied.proxies, sinks)
+      UnsubscribeProxies(proxies)
+      let sinks = dataflow(sources, ...rest)
+      SubscribeProxies(proxies, sinks)
     })
   } else {
     proxiedInstances = proxiesStore[proxyId] = []
@@ -117,14 +111,14 @@ export const hmrProxy = (dataflow, proxyId) => {
     const sinks = dataflow(sources, ...rest)
     if (isObservable(sinks)){
       let proxies = makeSinkProxies({sinks})
-      proxiedInstances.push({sources, proxies})
+      proxiedInstances.push({sources, proxies, rest})
       return getProxyStreams(proxies).sinks
     } else if (typeof sinks  === 'object') {
       let proxies = makeSinkProxies(sinks)
       if (!proxies){
         return
       }
-      proxiedInstances.push({sources, proxies})
+      proxiedInstances.push({sources, proxies, rest})
       return getProxyStreams(proxies)
     } else {
       return sinks
