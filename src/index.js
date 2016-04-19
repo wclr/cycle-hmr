@@ -78,6 +78,12 @@ const UnsubscribeProxies = (proxies, debug) => {
   }, {})
 }
 
+const getDebugMethod = (value) =>
+  typeof console === 'object'
+    ? typeof console[value] === 'function' ? value
+      : console['log'] ? 'log' : ''
+    : ''
+
 export const hmrProxy = (dataflow, proxyId, options = {}) => {
   
   if (typeof dataflow !== 'function'){
@@ -87,9 +93,15 @@ export const hmrProxy = (dataflow, proxyId, options = {}) => {
   if (typeof proxyId !== 'string'){
     throw new Error('You should provide string value of proxy id')
   }
-  const debug = options.debug
-    ? (message) => {console.warn(`[Cycle HRM] proxy ${proxyId}: {message}`)}
-    : () => {}
+
+  let debug = () => {}
+  if (options.debug){
+    const debugMethod = getDebugMethod(options.debug)
+    debug = debugMethod
+      ? (message) => console[debugMethod](`[Cycle HRM] proxy ${proxyId}: {message}`)
+      : debug
+  }
+
   const makeSinkProxies = options.useSubject ?
     (sinks) => makeSinkProxiesSubjects(parseInt(options.useSubject) || 0)
   : makeSinkProxiesObservables
