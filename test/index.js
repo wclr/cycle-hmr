@@ -44,7 +44,6 @@ test('simple sink steam', t => {
 })
 
 test('basic reload', t => {
-
   var proxyId = getRandomId()
 
   const func = ({input$}, rest, rest2) => {
@@ -80,4 +79,18 @@ test('basic reload', t => {
     reloaded = true
     input$.onNext(2)
   }, 100)
+})
+
+test('transparently proxy not cycle functions', t => {
+  const str = 'str'
+  const obj = {a: 1}
+  const fn = x => x*2
+  const fnObj = x => ({value: x*2})
+  t.is(proxy(str, getRandomId()), 'str', 'proxied constant value is ok')
+  t.is(proxy(obj, getRandomId()), obj, 'proxied object ref is ok')
+  t.is(proxy(obj, getRandomId()).a, 1, 'proxied object prop is ok')
+  t.is(proxy(obj, getRandomId()).a, 1, 'proxied object prop is ok')
+  t.is(proxy(fn, getRandomId())(2), 4, 'proxied function returned result is ok')
+  t.is(proxy(fnObj, getRandomId())(2).value, 4, 'proxied function returned object is ok')
+  t.end()
 })

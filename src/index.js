@@ -58,23 +58,22 @@ const getProxyStreams = (proxies) => {
   }, {})
 }
 
-const SubscribeProxies = (proxies, sinks) => {
+const SubscribeProxies = (proxies, sinks, debug) => {
   if (isObservable(sinks)){
     sinks = {sinks}
   }
   return Object.keys(sinks).forEach((key) => {
     const proxy = proxies[key]
-    console.warn('subscribe to', key)
     proxy.subscription = sinks[key].subscribe(proxy.observer)
   }, {})
 }
 
-const UnsubscribeProxies = (proxies) => {
+const UnsubscribeProxies = (proxies, debug) => {
   return Object.keys(proxies).forEach((key) => {
     if (proxies[key].subscription){
       proxies[key].subscription.dispose()
     } else {
-      console.warn('[Cycle HRM] UnsubscribeProxies: no subscription for sink', key)
+      debug(`no subscription for sink ${key}`)
     }
   }, {})
 }
@@ -86,28 +85,31 @@ export const hmrProxy = (dataflow, proxyId, options = {}) => {
   }
 
   if (typeof proxyId !== 'string'){
-    throw new Error('You should provider proxy ID string value')
+    throw new Error('You should provide string value of proxy id')
   }
+  const debug = options.debug
+    ? (message) => {console.warn(`[Cycle HRM] proxy ${proxyId}: {message}`)}
+    : () => {}
   const makeSinkProxies = options.useSubject ?
     (sinks) => makeSinkProxiesSubjects(parseInt(options.useSubject) || 0)
   : makeSinkProxiesObservables
   
-  console.warn('[Cycle HRM] proxy created', proxyId)
+  debug('created')
   let proxiedInstances = proxiesStore[proxyId]
   
   if (proxiedInstances){
     proxiedInstances.forEach(({proxies, sources, rest}) => {
-      console.warn('[Cycle HRM] proxy', proxyId, 'reload')
-      UnsubscribeProxies(proxies)
+      debug('reload')
+      UnsubscribeProxies(proxies, debug)
       let sinks = dataflow(sources, ...rest)
-      SubscribeProxies(proxies, sinks)
+      SubscribeProxies(proxies, sinks, debug)
     })
   } else {
     proxiedInstances = proxiesStore[proxyId] = []
   }
   
   return (sources, ...rest) => {
-    console.warn('[Cycle HRM] proxy', proxyId, 'execute')
+    debug('execute')
     const sinks = dataflow(sources, ...rest)
     if (isObservable(sinks)){
       let proxies = makeSinkProxies({sinks})
@@ -116,11 +118,13 @@ export const hmrProxy = (dataflow, proxyId, options = {}) => {
     } else if (typeof sinks  === 'object') {
       let proxies = makeSinkProxies(sinks)
       if (!proxies){
-        return
+        debug('sink not a stream result')
+        return sinks
       }
       proxiedInstances.push({sources, proxies, rest})
       return getProxyStreams(proxies)
     } else {
+      debug('sink not a stream result')
       return sinks
     }
   }
