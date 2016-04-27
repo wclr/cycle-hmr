@@ -43,17 +43,21 @@ const makeSinkProxySubject = (sink, replayCount = 0) => {
 const makeSinkProxiesSubjects = (sinks, replayCount) =>
   _makeSinkProxies(sinks, (sink) => makeSinkProxySubject(sink, replayCount))
 
-
 const makeSinkProxiesObservables = (sinks) =>
   _makeSinkProxies(sinks, makeSinkProxyObservable)
 
-const getProxyStreams = (proxies) => {
+const getProxyStreams = (proxies, debug) => {
   return Object.keys(proxies).reduce((obj, key) => {
-    obj[key] = proxies[key].stream.finally(() => {
-      //if (proxies[key].subscribtion){
-        proxies[key].subscription.dispose()
-      //}
-    })
+    let proxy = proxies[key]
+    if (isObservable(proxy && proxy.stream)){
+      obj[key] = proxy.stream.finally(() => {
+        //if (proxies[key].subscribtion){
+        proxy.subscription.dispose()
+        //}
+      })
+    } else {
+      debug(`no proxy stream for sink \`${key}\``)
+    }
     return obj
   }, {})
 }
@@ -73,7 +77,7 @@ const UnsubscribeProxies = (proxies, debug) => {
     if (proxies[key].subscription){
       proxies[key].subscription.dispose()
     } else {
-      debug(`no subscription for sink ${key}`)
+      debug(`no subscription for sink \`${key}\``)
     }
   }, {})
 }
@@ -98,7 +102,7 @@ export const hmrProxy = (dataflow, proxyId, options = {}) => {
   if (options.debug){
     const debugMethod = getDebugMethod(options.debug)
     debug = debugMethod
-      ? (message) => console[debugMethod](`[Cycle HRM] proxy ${proxyId}: {message}`)
+      ? (message) => console[debugMethod](`[Cycle HRM] proxy ${proxyId}: ${message}`)
       : debug
   }
 
@@ -126,7 +130,7 @@ export const hmrProxy = (dataflow, proxyId, options = {}) => {
     if (isObservable(sinks)){
       let proxies = makeSinkProxies({sinks})
       proxiedInstances.push({sources, proxies, rest})
-      return getProxyStreams(proxies).sinks
+      return getProxyStreams(proxies, debug).sinks
     } else if (typeof sinks  === 'object') {
       let proxies = makeSinkProxies(sinks)
       if (!proxies){
@@ -134,7 +138,7 @@ export const hmrProxy = (dataflow, proxyId, options = {}) => {
         return sinks
       }
       proxiedInstances.push({sources, proxies, rest})
-      return getProxyStreams(proxies)
+      return getProxyStreams(proxies, debug)
     } else {
       debug('sink not a stream result')
       return sinks
