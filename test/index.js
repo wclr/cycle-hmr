@@ -1,13 +1,39 @@
 import {Observable as O, Subject} from 'rx'
-import {proxy} from '../lib/index'
+import {hmrProxy as proxy} from '../lib'
+import RxCycle from '@cycle/rx-run'
+import RxjsCycle from '@cycle/rxjs-run'
+import XsCycle from '@cycle/xstream-run'
+//import {run as motorRun} from '@motorcycle/core'
+//import mostAdapter from '@cycle/most-adapter'
+//import MostCycle from '@cycle/most-run'
+import xs from 'xstream'
+import most from 'most'
+import Rxjs from 'rxjs'
+
 import test from 'tape'
 
 const getRandomId = () =>  Math.random(1).toString().slice(4, 8)
+const debug = false
 
-test('basic', t => {
+test('Proxying cycle function with single steam sink (not object)', t => {
+  const func = ({input$}) => {
+    return input$.map(x => x * 2)
+  }
+
+  let funcProxy = proxy(func, getRandomId())
+  let input$ = O.of(1)
+  let sink = funcProxy({input$})
+
+  sink.subscribe((y) => {
+    t.is(y, 2, 'output of stream should not change')
+    t.end()
+  }, t.error)
+})
+
+test('Proxing cycle functjion of simple sink object', t => {
   const func = ({input$}, rest, rest2) => {
-    t.is(rest, 'rest', 'rest param is ok')
-    t.is(rest2, 'rest2', 'rest2 param is ok')
+    t.is(rest, 'rest', 'first rest source param should be passed transparently')
+    t.is(rest2, 'rest2', 'second rest param should passed transparently')
     return {
       output$: input$.map(x => x * 2)
     }
@@ -18,65 +44,68 @@ test('basic', t => {
   let sink = funcProxy({input$}, 'rest', 'rest2')
   //console.log('sink.output$', sink.output$.subscribe)
   sink.output$.subscribe((y) => {
-    t.is(y, 2, 'output is ok')
+    t.is(y, 2, 'proxied function output should be correct')
     t.end()
   }, t.error)
 })
 
-test('simple sink steam', t => {
-  const func = ({input$}) => {
-    return input$.map(x => x * 2)
-  }
-
-  let funcProxy = proxy(func, getRandomId())
-  let input$ = O.of(1)
-  let sink = funcProxy({input$}, 'rest', 'rest2')
-  
-  sink.subscribe((y) => {
-    t.is(y, 2, 'output is ok')
-    t.end()
-  }, t.error)
-})
-
-test('basic reload', t => {
+test('Double reload scenario', t => {
   var proxyId = getRandomId()
 
   const func = ({input$}, rest, rest2) => {
     return {
-      output$: input$.map(x => x * 2)
+      // completed stream
+      output$: input$.map(x => x * 2).take(1)
     }
   }
 
   const funcReloaded = ({input$}, rest, rest2) => {
-    t.is(rest, 'rest', 'rest param is ok')
-    t.is(rest2, 'rest2', 'rest2 param is ok')
+    t.is(rest, 'rest', 'first rest source param stays the same')
+    t.is(rest2, 'rest2', 'second rest source param stays the same')
     return {
-      output$: input$.map(x => x * 20)
+      output$: input$.map(x => x * 20).take(1)
     }
   }
 
-  let funcProxy = proxy(func, proxyId)
+  const funcReloaded2 = ({input$}, rest, rest2) => {
+    t.is(rest, 'rest', 'first rest source param stays the same')
+    t.is(rest2, 'rest2', 'second rest source param stays the same')
+    return {
+      output$: input$.map(x => x * 200)
+    }
+  }
+
+  let funcProxy = proxy(func, proxyId, {debug})
   let input$ = new Subject()
   let sink = funcProxy({input$}, 'rest', 'rest2')
   
-  let reloaded = false
+  let reloaded = 0
   sink.output$.subscribe((y) => {
-    if (!reloaded){
-      t.is(y, 2, 'output is ok')
-    } else {
-      t.is(y, 40, 'reloaded output is ok')
+    if (reloaded === 0){
+      t.is(y, 2, 'initial output should be correct')
+    }
+    if (reloaded === 1) {
+      t.is(y, 40, 'reloaded output should be correct')
+    }
+    if (reloaded === 2) {
+      t.is(y, 400, 'next reloaded output should be correct')
       t.end()
     }
   }, t.error)
   input$.onNext(1)
   setTimeout(() => {
-    proxy(funcReloaded, proxyId)
-    reloaded = true
+    proxy(funcReloaded, proxyId, {debug})
+    reloaded++
     input$.onNext(2)
+    setTimeout(() => {
+      proxy(funcReloaded2, proxyId, {debug})
+      reloaded++
+      input$.onNext(2)
+    }, 100)
   }, 100)
 })
 
-test('transparently proxy not cycle functions', t => {
+test('Proxing of non cycle functions', t => {
   const str = 'str'
   const obj = {a: 1}
   const fn = x => x*2
@@ -89,3 +118,98 @@ test('transparently proxy not cycle functions', t => {
   t.is(proxy(fnObj, getRandomId())(2).value, 4, 'proxied function returned object is ok')
   t.end()
 })
+
+const makeRunText = (Cycle, interval, subscribe = 'subscribe') => (t) => {
+  let count = 0
+  let sinkCount = 0
+  let value
+  const testTimeout = 500
+  const func = (input$) => {
+    return {
+      output$: input$.map(x => x * 2)
+    }
+  }
+  const funcReloaded = (input$) => {
+    return {
+      output$: input$.map(x => x * 2000)
+    }
+  }
+  const proxyId = 'func_' + getRandomId()
+  const mainProxyId = 'main_' + getRandomId()
+
+  let funcProxy = proxy(func, proxyId, {debug: true})
+
+  const main = ({}) => {
+    const output$ = funcProxy(interval(80)).output$
+    return {
+      other: output$.take(1),
+      log: output$
+        .map((x) => {
+          count++
+          return x
+        })
+    }
+  }
+
+  const {sinks, sources, run} = Cycle(
+    proxy(main, mainProxyId, {debug: true}), {
+    other: (messages$, runSA) => {
+      return runSA.streamSubscribe(messages$, {
+        next: x => {
+          t.is(x, 0, 'completed stream value ok')
+        },
+        error: () => {},
+        complete: () => {}
+      })
+    },
+    log: (messages$, runSA) => {
+      return runSA.streamSubscribe(messages$, {
+        next: x => {
+          console.log('message', x)
+          value = x
+          sinkCount++
+        },
+        error: () => {},
+        complete: () => {}
+      })
+    }
+  })
+  var dispose = run()
+
+  proxy(funcReloaded, proxyId, {debug: true})
+
+  setTimeout(() => {
+    dispose()
+    setTimeout(() => {
+      t.ok(value > 1000, 'last value:' + value + ' was proxied')
+      t.is(count, sinkCount, 'no leaking')
+      t.end()
+    }, 1000)
+  }, testTimeout)
+
+}
+
+test('Cycle function with disposal (rx)',
+  makeRunText(RxCycle, O.interval)
+)
+
+test('Cycle function with disposal (rxjs)',
+  makeRunText(RxjsCycle, Rxjs.Observable.interval)
+)
+
+test('Cycle function with disposal (xstream)',
+  makeRunText(XsCycle, xs.periodic, 'addListener')
+)
+
+//const MotorCycle = (main, drivers) => {
+//  const {sinks, sources} = motorRun(main, drivers)
+//  const run = () => () => {
+//    sinks.dispose()
+//    sources.dispose()
+//  }
+//  return {sinks, sources, run}
+//}
+//
+//test.only('Cycle function with disposal (motorcycle)',
+//  makeRunText(MotorCycle, most.interval, 'addListener')
+//)
