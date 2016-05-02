@@ -1,7 +1,7 @@
 # cycle-hmr
 
-Hot replacement of [cycle.js](http://http://cycle.js.org) function within 
-your application, without need of reinitializing/restarting the app.
+Hot reload (replacement) of [cycle.js](http://http://cycle.js.org) 
+functions (components) of your application, without need of refreshing/reinitializing/restarting.
 
 ## Demo (editing cyclic component's DOM vtree) 
 
@@ -12,20 +12,23 @@ your application, without need of reinitializing/restarting the app.
 It is achieved by proxying cycle components (like it is done for example in [React Hot Reloader](https://github.com/gaearon/react-proxy/)).
 In cycle we have just pure functions that output sink streams, 
 and it is quite straightforward to have them proxied. 
-When new module (cycle function) version is loaded (using some hot reloader) - we just subscribe proxied sinks to new ones.
+When new module (with cyclic functions) is arrives (using some hot reloader) - we just subscribe proxied sinks to new ones.
 
 ## Supported stream libraries
 
 `cycle-hmr` is stream library agnostic. So you can use it with any library supported by `cyclejs` 
-(rxjs4, rxjs5, most, xstream) - it will use needed cycle adapter, but you should
- have it installed in your dependencies, if cycle-hmr will not find valid adapter 
+([rx4](https://github.com/Reactive-Extensions/RxJS), 
+[rx5](https://github.com/ReactiveX/rxjs), 
+[most](https://github.com/cujojs/most), [xstream](https://github.com/staltz/xstream)) - 
+it **will detect and use needed stream adapter, but you should
+ have it installed** in your dependencies, if cycle-hmr will not find valid adapter 
  it will just not proxy your streams. 
 
 ## Usage
 
 ```
 npm install cycle-hmr --save-dev
-npm install @cycle/rxjs-adapter @cycle/xstream-adpater --save
+npm install @cycle/rxjs-adapter @cycle/xstream-adapter --save
 ```
 
 `cycle-hmr` comes with **babel plugin** (as dependency).
@@ -53,7 +56,7 @@ But you can mark files individually with comment on the top:
 
 For each processed module `cycle-hmr` babel plugin will *wrap* all the exports 
 with (safe) HMR proxy call and add `hot.accept()` (webpack/browserify HMR API),
-so no dependants of the module will be reloaded when module change. 
+so no dependants of the module will be reloaded when module changes. 
 
 *Note: if it proxies something that it should not, well, unlikely 
 that it will break anything - HMR proxy wrapper is transparent for non-cyclic exports.*
@@ -66,9 +69,9 @@ changes to those exports will not have any effect - so it is recommended
 It is easy to use cycle-hmr with **webpack** or **browserify**.
 
 ### Webpack
-Just use `babel-loader` for your source files and pass the options `cycle-hrm` or use .babelrc.
-
-
+Just use `babel-loader` for your source files and pass the options 
+`cycle-hrm` or use .babelrc. Use [`IgnorePlugin`](https://webpack.github.io/docs/list-of-plugins.html#ignoreplugin)
+  to get rid of warnings of adapter plugins that you don't have installed
 ```js
     new webpack.IgnorePlugin(/most-adapter/)
 ```
