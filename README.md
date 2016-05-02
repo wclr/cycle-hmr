@@ -3,12 +3,16 @@
 Hot replacement of [cycle.js](http://http://cycle.js.org) function within 
 your application, without need of reinitializing/restarting the app.
 
+## Demo (editing cyclic component's DOM vtree) 
+
+![ezgif com-resize](https://cloud.githubusercontent.com/assets/736697/14966550/804b45fc-10cc-11e6-8a64-91d9cf98f4d2.gif)
+
 ##  How does it work?
 
 It is achieved by proxying cycle components (like it is done for example in [React Hot Reloader](https://github.com/gaearon/react-proxy/)).
 In cycle we have just pure functions that output sink streams, 
 and it is quite straightforward to have them proxied. 
-When new module (cycle function) version - we just subscribe proxied sinks to new ones.
+When new module (cycle function) version is loaded (using some hot reloader) - we just subscribe proxied sinks to new ones.
 
 ## Supported stream libraries
 
@@ -16,17 +20,6 @@ When new module (cycle function) version - we just subscribe proxied sinks to ne
 (rxjs4, rxjs5, most, xstream) - it will use needed cycle adapter, but you should
  have it installed in your dependencies, if cycle-hmr will not find valid adapter 
  it will just not proxy your streams. 
-
-## Conventions 
-To work with `cycle-hmr` you should follow a few convetions:
-
-* have certain locations were modules with cyclic functions are located
-
-* those modules should be exporting only cycle functions for reuse 
-*modules with cycle functions (processed with `cycle-hmr` plugin) are supposed 
-to be reloaded by its own and will cause dependants to be reloaded, so you are unlikely to see hot reloaded 
-changes made to non-cyclic exports*
- 
 
 ## Usage
 
@@ -36,7 +29,8 @@ npm install cycle-hmr --save-dev
 
 `cycle-hmr` comes with **babel plugin** (as dependency).
 
-You should include the babel plugin (for example in  `.babelrc`) and point where files with cyclic functions 
+You should include the babel plugin (for example in  `.babelrc`) and 
+**point where files** with cyclic functions 
 are located (you may also `exclude` option to point files that should not be processed):
 
 .babelrc:
@@ -51,7 +45,7 @@ are located (you may also `exclude` option to point files that should not be pro
 ```
 
 If you don't use `include/exclude` options, no modules will be processed by default.
-But you may mark files individually with comment on the top:
+But you can mark files individually with comment on the top:
  ```js
  /* @cycle-hmr */
  ```
@@ -63,9 +57,14 @@ so no dependants of the module will be reloaded when module change.
 *Note: if it proxies something that it should not, well, unlikely 
 that it will break anything - HMR proxy wrapper is transparent for non-cyclic exports.*
 
+*NB! if you have non cycle exports in processed modules, and use them somewhere,
+changes to those exports will not have any effect - so it is recommended 
+**to have only cyclic exports in processed modules** .*
+
+
 It is easy to use cycle-hmr with **webpack** or **browserify**.
 
-## Webpack
+### Webpack
 Just use `babel-loader` for your source files and pass the options `cycle-hrm` or use .babelrc.
 
 
@@ -73,12 +72,12 @@ Just use `babel-loader` for your source files and pass the options `cycle-hrm` o
     new webpack.IgnorePlugin(/most-adapter/)
 ```
 
-## Browserify
+### Browserify
 
 Use `babelify`. And use `--ingnore-missing` option to ignore missing dependencies. 
 
 
-#### Debug output
+### Debug output
 
 If there is something wrong and you don't understand what (for example HMR does not work), 
 you may want to turn on the debug output: It will show what happens to components that are proxied.
