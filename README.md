@@ -25,6 +25,7 @@ When new module (cycle function) version is loaded (using some hot reloader) - w
 
 ```
 npm install cycle-hmr --save-dev
+npm install @cycle/rxjs-adapter @cycle/xstream-adpater --save
 ```
 
 `cycle-hmr` comes with **babel plugin** (as dependency).
@@ -57,9 +58,9 @@ so no dependants of the module will be reloaded when module change.
 *Note: if it proxies something that it should not, well, unlikely 
 that it will break anything - HMR proxy wrapper is transparent for non-cyclic exports.*
 
-*NB! if you have non cycle exports in processed modules, and use them somewhere,
+*NB!* if you have non cycle exports in processed modules, and use them somewhere,
 changes to those exports will not have any effect - so it is recommended 
-**to have only cyclic exports in processed modules** .*
+**to have only cyclic exports in processed modules** .
 
 
 It is easy to use cycle-hmr with **webpack** or **browserify**.
