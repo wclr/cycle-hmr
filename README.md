@@ -1,7 +1,7 @@
 # cycle-hmr
 
-Hot reload (replacement) of [cycle.js](http://http://cycle.js.org) 
-functions (components) of your application, without need of refreshing/reinitializing/restarting.
+**Hot reloading** (replacement) of [cycle.js](http://http://cycle.js.org) 
+functions (components) within your application without need of *refreshing / reinitializing / restarting*.
 
 ## Demo (editing cyclic component's DOM vtree) 
 
@@ -9,10 +9,15 @@ functions (components) of your application, without need of refreshing/reinitial
 
 ##  How does it work?
 
+cycle-hmr utilizes "standard" HMR approach - replacing internals 
+of existing instances with new version on the fly. 
 It is achieved by proxying cycle components (like it is done for example in [React Hot Reloader](https://github.com/gaearon/react-proxy/)).
 In cycle we have just pure functions that output sink streams, 
 and it is quite straightforward to have them proxied. 
-When new module (with cyclic functions) is arrives (using some hot reloader) - we just subscribe proxied sinks to new ones.
+When updated version of module with cyclic functions arrives (using some hot reload technique) 
+we **transparently replace components while their runtime** 
+keeping the rest application parts not touched 
+(though of course injection of updated components potentially my cause some "unexpected" effects).
 
 ## Supported stream libraries
 
@@ -54,8 +59,8 @@ But you can mark files individually with comment on the top:
  /* @cycle-hmr */
  ```
 
-For each processed module `cycle-hmr` babel plugin will *wrap* all the exports 
-with (safe) HMR proxy call and add `hot.accept()` (webpack/browserify HMR API),
+For each processed module `cycle-hmr` babel plugin *wraps* all the exports 
+with (safe) HMR proxy and adds also `hot.accept()` (webpack/browserify HMR API),
 so no dependants of the module will be reloaded when module changes. 
 
 *Note: if it proxies something that it should not, well, unlikely 
@@ -63,25 +68,43 @@ that it will break anything - HMR proxy wrapper is transparent for non-cyclic ex
 
 *NB!* if you have non cycle exports in processed modules, and use them somewhere,
 changes to those exports will not have any effect - so it is recommended 
-**to have only cyclic exports in processed modules** .
+to **have only cyclic exports in processed modules** .
 
 
 It is easy to use cycle-hmr with **webpack** or **browserify**.
 
 ### Webpack
-Just use `babel-loader` for your source files and pass the options 
-`cycle-hrm` or use .babelrc. Use [`IgnorePlugin`](https://webpack.github.io/docs/list-of-plugins.html#ignoreplugin)
-  to get rid of warnings of adapter plugins that you don't have installed
+Just use standard hot reloading workflow with `webpack-dev-server` and `babel-loader`. 
+Use [`IgnorePlugin`](https://webpack.github.io/docs/list-of-plugins.html#ignoreplugin)
+to get rid of warnings for missing adapters. Needed parts of `webpack.config.js`:
 ```js
-    new webpack.IgnorePlugin(/most-adapter/)
+  ...
+  module: {
+    loaders: [{
+      test: /\.js$/,
+      loader: 'babel' // .babelrc should plug in `cycle-hmr`
+    }]
+  },
+  plugins: [
+    new webpack.HotModuleReplacementPlugin()
+    new webpack.IgnorePlugin(/most-adapter/) // for adaperts not installed
+  ],
+  devServer: {
+    hot: true,
+  ...
 ```
 
 ### Browserify
 
-Use `babelify`. And use `--ingnore-missing` option to ignore missing dependencies. 
+Use `browserify-hmr` plugin and `babelify`. Use `--ingnore-missing` option to ignore missing dependencies.
+For example launch with [budo](https://github.com/mattdesl/budo) server:
+
+```bash
+budo entry.js -- -t babelify --ignore-missing -p browserify-hmr
+```
 
 
-### Debug output
+## Debug output
 
 If there is something wrong and you don't understand what (for example HMR does not work), 
 you may want to turn on the debug output: It will show what happens to components that are proxied.

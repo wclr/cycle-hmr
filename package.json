@@ -1,7 +1,9 @@
 {
   "name": "cycle-hmr",
   "version": "0.1.0",
-  "description": "Cycle.js utilities for hot module replacement (HMR).",
+  "description": "Cycle.js hot module replacement (HMR).",
+  "author": "whitecolor",
+  "license": "ISC",
   "main": "lib/index.js",
   "keywords": [
     "dx",
@@ -21,8 +23,9 @@
     "browserify-example": "h --n cycle-hmr-broserify -- node -r babel-register example/budo.js",
     "_browserify-example": "h --n cycle-hmr-broserify -- budo example/app.js -- -t babelify --ignore-missing -p browserify-hmr"
   },
-  "author": "whitecolor",
-  "license": "ISC",
+  "dependencies": {
+    "babel-plugin-cycle-hmr": "~0.1.0"
+  },
   "devDependencies": {
     "@cycle/base": "^2.0.1",
     "@cycle/dom": "^10.0.0-rc11",
@@ -50,13 +53,12 @@
     "rx": "^4.1.0",
     "rx-factory": "^1.0.0",
     "rxjs": "^5.0.0-beta.7",
+    "steal": "^0.16.4",
     "style-loader": "^0.13.1",
     "tape": "^4.5.1",
+    "watchalive": "^1.1.9",
     "webpack": "^1.13.0",
     "webpack-dev-server": "^1.14.1",
     "xstream": "^2.1.2"
-  },
-  "dependencies": {
-    "babel-plugin-cycle-hmr": "~0.1.0"
   }
 }
