@@ -1,6 +1,6 @@
 {
   "name": "cycle-hmr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Cycle.js hot module replacement (HMR).",
   "author": "whitecolor",
   "license": "ISC",
@@ -25,7 +25,7 @@
     "_browserify-example": "h --n cycle-hmr-broserify -- budo example/app.js -- -t babelify --ignore-missing -p browserify-hmr"
   },
   "dependencies": {
-    "babel-plugin-cycle-hmr": "^0.1.0"
+    "babel-plugin-cycle-hmr": "^0.2.0"
   },
   "devDependencies": {
     "@cycle/base": "^2.0.1",

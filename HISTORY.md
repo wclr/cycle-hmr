@@ -1,3 +1,5 @@
+### v0.2.0 
+    * add `global.noCycleHmr` support
 ### v0.1.0 Release supports all libs 
     * supports all libs
     * babel plugin included
