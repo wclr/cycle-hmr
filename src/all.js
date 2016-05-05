@@ -25,3 +25,4 @@ export const hmrProxy = (...args) => {
   args.unshift(adapters)
   return _hmrProxy.apply(null, args)
 }
+export {hmrProxy as proxy}

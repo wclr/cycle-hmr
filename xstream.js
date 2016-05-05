@@ -1,1 +1,1 @@
-module.export = require('./lib/libraries/xstream').default
+module.exports = require('./lib/libraries/xstream')

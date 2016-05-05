@@ -9,13 +9,13 @@ functions (components) within your application without need of *refreshing / rei
 
 ##  How does it work?
 
-cycle-hmr utilizes "standard" HMR approach - replacing internals 
-of existing instances with new version on the fly. 
+**cycle-hmr** utilizes "standard" HMR approach - replacing internals 
+of existing instances with newly updated versions on the fly. 
 It is achieved by proxying cycle components (like it is done for example in [React Hot Reloader](https://github.com/gaearon/react-proxy/)).
-In cycle we have just pure functions that output sink streams, 
-and it is quite straightforward to have them proxied. 
+In cycle.js application components are pure functions that output sink streams, 
+that makes it quite straightforward to transparently and safely extend them. 
 When updated version of module with cyclic functions arrives (using some hot reload technique) 
-we **transparently replace components while their runtime** 
+we **replace components while their runtime** 
 keeping the rest application parts not touched 
 (though of course injection of updated components potentially my cause some "unexpected" effects).
 
@@ -53,6 +53,8 @@ are located (you may also `exclude` option to point files that should not be pro
 }
 ```
 
+You can also use only specific stream library plugin: `"cycle-hmr/rx"`
+
 If you don't use `include/exclude` options, no modules will be processed by default.
 But you can mark files individually with comment on the top:
  ```js
@@ -74,11 +76,15 @@ to **have only cyclic exports in processed modules** .
 It is easy to use cycle-hmr with **webpack** or **browserify**.
 
 ### Webpack
-Just use standard hot reloading workflow with `webpack-dev-server` and `babel-loader`. 
-Use [`IgnorePlugin`](https://webpack.github.io/docs/list-of-plugins.html#ignoreplugin)
-to get rid of warnings for missing adapters. Needed parts of `webpack.config.js`:
+Setup you hot reloading workflow with `webpack-dev-server` and `babel-loader` 
+using this need parts of config:
 ```js
   ...
+  entry: [
+    'webpack-dev-server/client',
+    'webpack/hot/only-dev-server',
+    './app.js' // your app's entry
+  ]
   module: {
     loaders: [{
       test: /\.js$/,
@@ -86,12 +92,25 @@ to get rid of warnings for missing adapters. Needed parts of `webpack.config.js`
     }]
   },
   plugins: [
-    new webpack.HotModuleReplacementPlugin()
+    new webpack.NoErrorsPlugin(), // use it
+    new webpack.HotModuleReplacementPlugin(),
     new webpack.IgnorePlugin(/most-adapter/) // for adaperts not installed
   ],
   devServer: {
     hot: true,
   ...
+```
+
+**NB!** To have less problems when dealing with compile and runtime errors, 
+because of existing issues with `webpack-dev-server` recommendation is to run 
+it using node API, instead of cli (especially avoid `--hot` and `--inline` options).
+
+```js
+var webpack = require('webpack');
+var WebpackDevServer = require('webpack-dev-server');
+var config = require('./webpack.config');
+new WebpackDevServer(webpack(config), config.devServer)
+  .listen(process.env.PORT);
 ```
 
 ### Browserify
@@ -102,7 +121,6 @@ For example launch with [budo](https://github.com/mattdesl/budo) server:
 ```bash
 budo entry.js -- -t babelify --ignore-missing -p browserify-hmr
 ```
-
 
 ## Debug output
 

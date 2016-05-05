@@ -1,1 +1,1 @@
-module.export = require('./lib/libraries/most').default
+module.export = require('./lib/libraries/most')

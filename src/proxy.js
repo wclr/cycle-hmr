@@ -1,13 +1,19 @@
 const proxiesStore = {}
 
+let cycleHmrEnabled = true
+
 if (typeof global !== 'undefined'){
   global.cycleHmrProxiesStore = proxiesStore
+  if (global.noCycleHmr){
+    console.warn('[Cycle HMR] disabled')
+    cycleHmrEnabled = false
+  }
 }
 
-var findValidAdapter = (adapters, stream) => {
-  return stream && adapters
-      .filter(adapter => adapter.isValidStream(stream))[0]
-}
+const findValidAdapter = (adapters, stream) =>
+  stream && adapters
+    .filter(adapter => adapter.isValidStream(stream))[0]
+
 
 const subscribeObserver = (proxy, observer, debug) => {
   observer.dispose = proxy.adapter.streamSubscribe(proxy.sink, {
@@ -84,7 +90,7 @@ const getDebugMethod = (value) =>
 
 export const hmrProxy = (adapters, dataflow, proxyId, options = {}) => {
 
-  if (typeof dataflow !== 'function'){
+  if (!cycleHmrEnabled || typeof dataflow !== 'function'){
     return dataflow
   }
 
@@ -101,8 +107,6 @@ export const hmrProxy = (adapters, dataflow, proxyId, options = {}) => {
       : debug
   }
 
-  debug('created')
-
   let proxiedInstances = proxiesStore[proxyId]
 
   if (proxiedInstances){
@@ -118,19 +122,21 @@ export const hmrProxy = (adapters, dataflow, proxyId, options = {}) => {
 
   return (sources, ...rest) => {
     debug('execute')
-    const sinks = dataflow(sources, ...rest)
-    if (getAdapter(sinks)){
-      let proxies = makeSinkProxies({sinks}, getAdapter, debug)
-      proxiedInstances.push({sources, proxies, rest})
-      return getProxyStreams(proxies, debug).sinks
-    } else if (typeof sinks  === 'object') {
+    let sinks = dataflow(sources, ...rest)
+    const simple = getAdapter(sinks)
+    if (simple){
+      sinks = {sinks}
+    }
+    if (typeof sinks  === 'object') {
       let proxies = makeSinkProxies(sinks, getAdapter, debug)
       if (!proxies){
         debug('sink not a stream result')
         return sinks
       }
       proxiedInstances.push({sources, proxies, rest})
-      return getProxyStreams(proxies, debug)
+      debug('created')
+      const proxiedSinks = getProxyStreams(proxies, debug)
+      return simple ? proxiedSinks.sinks : proxiedSinks
     } else {
       debug('sink not a stream result')
       return sinks

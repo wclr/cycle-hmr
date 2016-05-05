@@ -1,1 +1,1 @@
-module.export = require('./lib/libraries/rx').default
+module.exports = require('./lib/libraries/rx')

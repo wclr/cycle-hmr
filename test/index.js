@@ -1,5 +1,9 @@
 import {Observable as O, Subject} from 'rx'
 import {hmrProxy as proxy} from '../lib'
+import {hmrProxy as rxProxy} from '../rx'
+import {hmrProxy as rxjsProxy} from '../rxjs'
+import {hmrProxy as xsProxy} from '../xstream'
+
 import RxCycle from '@cycle/rx-run'
 import RxjsCycle from '@cycle/rxjs-run'
 import XsCycle from '@cycle/xstream-run'
@@ -119,7 +123,7 @@ test('Proxing of non cycle functions', t => {
   t.end()
 })
 
-const makeRunText = (Cycle, interval, subscribe = 'subscribe') => (t) => {
+const makeRunText = (Cycle, proxy, interval, subscribe = 'subscribe') => (t) => {
   let count = 0
   let sinkCount = 0
   let value
@@ -190,15 +194,15 @@ const makeRunText = (Cycle, interval, subscribe = 'subscribe') => (t) => {
 }
 
 test('Cycle function with disposal (rx)',
-  makeRunText(RxCycle, O.interval)
+  makeRunText(RxCycle, rxProxy, O.interval)
 )
 
 test('Cycle function with disposal (rxjs)',
-  makeRunText(RxjsCycle, Rxjs.Observable.interval)
+  makeRunText(RxjsCycle, rxjsProxy, Rxjs.Observable.interval)
 )
 
 test('Cycle function with disposal (xstream)',
-  makeRunText(XsCycle, xs.periodic, 'addListener')
+  makeRunText(XsCycle, xsProxy, xs.periodic, 'addListener')
 )
 
 //const MotorCycle = (main, drivers) => {
