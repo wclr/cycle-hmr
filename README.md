@@ -5,7 +5,7 @@ functions (components) within your application without need of *refreshing / rei
 
 ## Demo (editing cyclic component's DOM vtree) 
 
-https://cloud.githubusercontent.com/assets/736697/15092621/7ae38b00-1488-11e6-8e61-46d384c6192d.gif
+![ezgif com-resize 1](https://cloud.githubusercontent.com/assets/736697/15092621/7ae38b00-1488-11e6-8e61-46d384c6192d.gif)
 
 ##  How does it work?
 
