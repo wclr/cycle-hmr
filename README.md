@@ -5,7 +5,7 @@ functions (components) within your application without need of *refreshing / rei
 
 ## Demo (editing cyclic component's DOM vtree) 
 
-![ezgif com-resize](https://cloud.githubusercontent.com/assets/736697/14966550/804b45fc-10cc-11e6-8a64-91d9cf98f4d2.gif)
+https://cloud.githubusercontent.com/assets/736697/15092621/7ae38b00-1488-11e6-8e61-46d384c6192d.gif
 
 ##  How does it work?
 
@@ -18,6 +18,21 @@ When updated version of module with cyclic functions arrives (using some hot rel
 we **replace components while their runtime** 
 keeping the rest application parts not touched 
 (though of course injection of updated components potentially my cause some "unexpected" effects).
+
+
+## What do you need to use it?
+* Well first you need to use **cycle.js**. Always. If you still don't.
+* Have a great desire to **be more efficient** with your development workflow, 
+HMR is about quick feedback loop while dev process, **you should use it**.
+* Use [webpack](https://webpack.github.io/) or [broserify](http://browserify.org/) 
+for modules loading/bundling. 
+Other loaders (e.g [System.js](https://github.com/systemjs/systemjs)) 
+are not tested and not supported yet.
+* Use ES2015 compatible modules, only ES6's `export`s are currently suported. 
+`CJS` modules will be ignored.
+* Use [babel](babeljs.io) transpiler. If you do't use babel 
+for ES2015 => ES5 transformation you can still use it, just for `cycle-hmr` plugin. 
+* Understand that it is **experimental feature** and bugs are possible.
 
 ## Supported stream libraries
 

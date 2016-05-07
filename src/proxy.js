@@ -14,17 +14,21 @@ const findValidAdapter = (adapters, stream) =>
   stream && adapters
     .filter(adapter => adapter.isValidStream(stream))[0]
 
-
 const subscribeObserver = (proxy, observer, debug) => {
-  observer.dispose = proxy.adapter.streamSubscribe(proxy.sink, {
+  const dispose = proxy.adapter.streamSubscribe(proxy.sink, {
       next: ::observer.next,
       error: (err) => {
-        debug(`sink ${proxy.key} error: ${err.message}`)
+        debug.error(`sink ${proxy.key} error: ${err.message}`)
       },
       complete: () => {
         debug(`sink ${proxy.key} completed`)
       }
     })
+  observer.dispose = () => {
+    if (typeof dispose === 'function'){
+      dispose()
+    }
+  }
 }
 
 const makeSinkProxies = (sinks, getAdapter, debug) => {
@@ -88,6 +92,9 @@ const getDebugMethod = (value) =>
     : console['log'] ? 'log' : ''
     : ''
 
+const makeDebugOutput = (method, proxyId) =>
+  (message) => console[method](`[Cycle HMR] proxy ${proxyId}: ${message}`)
+
 export const hmrProxy = (adapters, dataflow, proxyId, options = {}) => {
 
   if (!cycleHmrEnabled || typeof dataflow !== 'function'){
@@ -103,9 +110,10 @@ export const hmrProxy = (adapters, dataflow, proxyId, options = {}) => {
   if (options.debug){
     const debugMethod = getDebugMethod(options.debug)
     debug = debugMethod
-      ? (message) => console[debugMethod](`[Cycle HMR] proxy ${proxyId}: ${message}`)
+      ? makeDebugOutput(debugMethod, proxyId)
       : debug
   }
+  debug.error = makeDebugOutput('error', proxyId)
 
   let proxiedInstances = proxiesStore[proxyId]
 
