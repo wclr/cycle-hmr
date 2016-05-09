@@ -1,6 +1,6 @@
 {
   "name": "cycle-hmr",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Cycle.js hot module replacement (HMR).",
   "author": "whitecolor",
   "license": "ISC",
@@ -14,15 +14,13 @@
   "scripts": {
     "clean": "rimraf lib",
     "build": "babel src -d lib",
-    "build:watch": "babel src -w -d lib",
-    "_test": "mocha --compilers js:babel-register test/index.js",
-    "_test:watch": "npm run test -- --watch",
-    "test:watch": "node-dev --respawn -r babel-register test",
+    "build-watch": "babel src -w -d lib",
+    "test-watch": "node-dev --respawn -r babel-register test",
     "prepublish": "npm run clean && npm run build",
-    "webpack-example-server": "h --n cycle-hmr-webpack -- node example/webpack.js",
-    "webpack-example": "h --n cycle-hmr-webpack -- webpack-dev-server --config example/webpack.config.js",
+    "webpack-example": "h --n cycle-hmr-webpack -- node example/webpack.js",
+    "webpack-example-cli": "h --n cycle-hmr-webpack -- webpack-dev-server --config example/webpack.config.js",
     "browserify-example": "h --n cycle-hmr-broserify -- node -r babel-register example/budo.js",
-    "_browserify-example": "h --n cycle-hmr-broserify -- budo example/app.js -- -t babelify --ignore-missing -p browserify-hmr"
+    "browserify-example-cli": "h --n cycle-hmr-broserify -- budo example/app.js -- -t babelify --ignore-missing -p browserify-hmr"
   },
   "dependencies": {
     "babel-plugin-cycle-hmr": "^0.2.0"

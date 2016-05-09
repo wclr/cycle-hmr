@@ -87,6 +87,21 @@ that it will break anything - HMR proxy wrapper is transparent for non-cyclic ex
 changes to those exports will not have any effect - so it is recommended 
 to **have only cyclic exports in processed modules** .
 
+Also you may filter exports names which will be proxied with babel plugin 
+parameter `testExportName`, for example such config:
+```
+{
+  "plugins": [
+    ["cycle-hmr", {
+      "testExportName": "^[A-Z]"
+      "include": "*"      
+    }]
+  ]
+}
+```
+will process all the files, but will proxy only named exports starting with capital letter 
+(not it will not include `default` exports in this case, to include them you would use 
+`^([A-Z]|default)` regExp expression).
 
 It is easy to use cycle-hmr with **webpack** or **browserify**.
 
@@ -96,7 +111,7 @@ using this need parts of config:
 ```js
   ...
   entry: [
-    'webpack-dev-server/client',
+    'webpack-dev-server/client?http://localhost:' + process.env.PORT,
     'webpack/hot/only-dev-server',
     './app.js' // your app's entry
   ]

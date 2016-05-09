@@ -46,9 +46,67 @@ test('Proxing cycle functjion of simple sink object', t => {
   let funcProxy = proxy(func, getRandomId())
   let input$ = O.of(1)
   let sink = funcProxy({input$}, 'rest', 'rest2')
-  //console.log('sink.output$', sink.output$.subscribe)
   sink.output$.subscribe((y) => {
     t.is(y, 2, 'proxied function output should be correct')
+    t.end()
+  }, t.error)
+})
+
+test('Dataflow with sink contains factory function', t => {
+  const dataflow = ({input$}, rest, rest2) => {
+    return {
+      x: 1,
+      empty: null,
+      output: () => input$.map(x => x * 2)
+    }
+  }
+  const dataflowReloaded = ({input$}, rest, rest2) => {
+    return {
+      x: 2,
+      output: () => input$.map(x => x * 20)
+    }
+  }
+  const proxyId = getRandomId()
+  let dataflowProxy = proxy(dataflow, proxyId)
+  let input$ = O.of(1)
+  let sinks = dataflowProxy({input$})
+  t.is(sinks.x, 1, 'number is proxied transparent with no changes')
+  t.is(sinks.empty, null, 'nil is proxied transparent with no changes')
+  let sink = sinks.output()
+  proxy(dataflowReloaded, proxyId)
+  sink.subscribe((y) => {
+    t.is(y, 20, 'proxied function output should be correct')
+    t.end()
+  }, t.error)
+})
+
+test('Dataflow with sink contains (deep) nested object', t => {
+  const dataflow = ({input$}, rest, rest2) => {
+    return {
+      deep: {
+        nested: {
+          output$: input$.map(x => x * 2)
+        }
+      }
+    }
+  }
+  const dataflowReloaded = ({input$}, rest, rest2) => {
+    return {
+      deep: {
+        nested: {
+          output$: input$.map(x => x * 20)
+        }
+      }
+    }
+  }
+  const proxyId = getRandomId()
+  let dataflowProxy = proxy(dataflow, proxyId)
+  let input$ = O.of(1)
+  let sinks = dataflowProxy({input$})
+  let sink = sinks.deep.nested.output$
+  proxy(dataflowReloaded, proxyId)
+  sink.subscribe((y) => {
+    t.is(y, 20, 'proxied function output should be correct')
     t.end()
   }, t.error)
 })
@@ -113,12 +171,14 @@ test('Proxing of non cycle functions', t => {
   const str = 'str'
   const obj = {a: 1}
   const fn = x => x*2
+  const fnNil = x => null
   const fnObj = x => ({value: x*2})
   t.is(proxy(str, getRandomId()), 'str', 'proxied constant value is ok')
   t.is(proxy(obj, getRandomId()), obj, 'proxied object ref is ok')
   t.is(proxy(obj, getRandomId()).a, 1, 'proxied object prop is ok')
   t.is(proxy(obj, getRandomId()).a, 1, 'proxied object prop is ok')
   t.is(proxy(fn, getRandomId())(2), 4, 'proxied function returned result is ok')
+  t.is(proxy(fnNil, getRandomId())(), null, 'proxied nil function returned result is ok')
   t.is(proxy(fnObj, getRandomId())(2).value, 4, 'proxied function returned object is ok')
   t.end()
 })
@@ -141,7 +201,7 @@ const makeRunText = (Cycle, proxy, interval, subscribe = 'subscribe') => (t) => 
   const proxyId = 'func_' + getRandomId()
   const mainProxyId = 'main_' + getRandomId()
 
-  let funcProxy = proxy(func, proxyId, {debug: true})
+  let funcProxy = proxy(func, proxyId)
 
   const main = ({}) => {
     const output$ = funcProxy(interval(80)).output$
@@ -156,7 +216,7 @@ const makeRunText = (Cycle, proxy, interval, subscribe = 'subscribe') => (t) => 
   }
 
   const {sinks, sources, run} = Cycle(
-    proxy(main, mainProxyId, {debug: true}), {
+    proxy(main, mainProxyId), {
     other: (messages$, runSA) => {
       return runSA.streamSubscribe(messages$, {
         next: x => {
@@ -169,7 +229,6 @@ const makeRunText = (Cycle, proxy, interval, subscribe = 'subscribe') => (t) => 
     log: (messages$, runSA) => {
       return runSA.streamSubscribe(messages$, {
         next: x => {
-          console.log('message', x)
           value = x
           sinkCount++
         },
@@ -180,7 +239,7 @@ const makeRunText = (Cycle, proxy, interval, subscribe = 'subscribe') => (t) => 
   })
   var dispose = run()
 
-  proxy(funcReloaded, proxyId, {debug: true})
+  proxy(funcReloaded, proxyId)
 
   setTimeout(() => {
     dispose()
