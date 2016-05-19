@@ -1,9 +1,9 @@
 # cycle-hmr
 
-**Hot reloading** (replacement) of [cycle.js](http://http://cycle.js.org) 
-functions (components) within your application without need of *refreshing / reinitializing / restarting*.
+> :fire: **Hot** reloading of [cycle.js](http://http://cycle.js.org) 
+dataflows without need of *restarting* your app.
 
-## Demo (editing cyclic component's DOM vtree) 
+### Demo (editing cyclic component's DOM vtree) 
 
 ![ezgif com-resize 1](https://cloud.githubusercontent.com/assets/736697/15092621/7ae38b00-1488-11e6-8e61-46d384c6192d.gif)
 
@@ -46,32 +46,53 @@ it **will detect and use needed stream adapter, but you should
 
 ## Usage
 
+#### 1) Install from npm  
 ```
 npm install cycle-hmr --save-dev
+```
+
+Also my need to install adapters, but usually they are installed with your cycle `run` modules (like `@cycle/xstream-run`)
+```
 npm install @cycle/rxjs-adapter @cycle/xstream-adapter --save
 ```
+
+#### 2) Configure babel plugin and point to dataflow files
 
 `cycle-hmr` comes with **babel plugin** (as dependency).
 
 You should include the babel plugin (for example in  `.babelrc`) and 
-**point where files** with cyclic functions 
-are located (you may also `exclude` option to point files that should not be processed):
+**point where files** with cyclic dataflows are located (you may also `exclude` option to point files that should not be processed):
 
 .babelrc:
 ```json
 {
+  "env": {
+    "development": {
+      "plugins": [
+        ["cycle-hmr", {
+          "include": "**/cycles/**.js"      
+        }]
+      ]
+    }
+  }
+}
+```
+
+You can also use only specific stream library plugin: `"cycle-hmr/xstream"`
+
+```json
+"development": {
   "plugins": [
-    ["cycle-hmr", {
-      "include": "**/cycles/**.js"      
+    ["cycle-hmr/xstream", {
+      "include": "*"      
     }]
   ]
 }
 ```
 
-You can also use only specific stream library plugin: `"cycle-hmr/rx"`
-
-If you don't use `include/exclude` options, no modules will be processed by default.
-But you can mark files individually with comment on the top:
+Note that `include/exclude` is a [glob matchers](https://github.com/isaacs/minimatch) - 
+not relative paths, or regexps. If you don't use `include/exclude` options, no modules will be processed by default.
+But you can **mark files individually** with comment on the top:
  ```js
  /* @cycle-hmr */
  ```
@@ -89,7 +110,7 @@ to **have only cyclic exports in processed modules** .
 
 Also you may filter exports names which will be proxied with babel plugin 
 parameter `testExportName`, for example such config:
-```
+```json
 {
   "plugins": [
     ["cycle-hmr", {
@@ -103,9 +124,11 @@ will process all the files, but will proxy only named exports starting with capi
 (not it will not include `default` exports in this case, to include them you would use 
 `^([A-Z]|default)` regExp expression).
 
+#### 3) Configure bundler/loader for hot-reloading
+
 It is easy to use cycle-hmr with **webpack** or **browserify**.
 
-### Webpack
+####  Webpack
 Setup you hot reloading workflow with `webpack-dev-server` and `babel-loader` 
 using this need parts of config:
 ```js
@@ -143,7 +166,7 @@ new WebpackDevServer(webpack(config), config.devServer)
   .listen(process.env.PORT);
 ```
 
-### Browserify
+#### Browserify
 
 Use `browserify-hmr` plugin and `babelify`. Use `--ingnore-missing` option to ignore missing dependencies.
 For example launch with [budo](https://github.com/mattdesl/budo) server:
@@ -152,7 +175,7 @@ For example launch with [budo](https://github.com/mattdesl/budo) server:
 budo entry.js -- -t babelify --ignore-missing -p browserify-hmr
 ```
 
-## Debug output
+#### 4) Turn on debug output if needed
 
 If there is something wrong and you don't understand what (for example HMR does not work), 
 you may want to turn on the debug output: It will show what happens to components that are proxied.
@@ -173,3 +196,6 @@ individually using the comment on the top of the module:
 ```js
  /* @cycle-hmr-debug */
  ```
+
+## Licence
+MIT.

@@ -133,8 +133,9 @@ export const hmrProxy = (adapters, dataflow, proxyId, options = {}) => {
         proxy.sink = sinks[key]
         proxy.observers.map(
           observer => {
-            observer.dispose()
+            const dispose = observer.dispose
             subscribeObserver(proxy, observer)
+            dispose()
           }
         )
       }

@@ -1,3 +1,6 @@
+### v0.3.1
+    * fixed babel-plugin dependency version
+    * fixed making disposal after new subscribtion
 ### v0.3.0
     * added nested proxy of objects
     * added nested proxy of functions

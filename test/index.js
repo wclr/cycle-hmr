@@ -3,13 +3,12 @@ import {hmrProxy as proxy} from '../lib'
 import {hmrProxy as rxProxy} from '../rx'
 import {hmrProxy as rxjsProxy} from '../rxjs'
 import {hmrProxy as xsProxy} from '../xstream'
+import {hmrProxy as mostProxy} from '../most'
 
 import RxCycle from '@cycle/rx-run'
 import RxjsCycle from '@cycle/rxjs-run'
 import XsCycle from '@cycle/xstream-run'
-//import {run as motorRun} from '@motorcycle/core'
-//import mostAdapter from '@cycle/most-adapter'
-//import MostCycle from '@cycle/most-run'
+import MostCycle from '@cycle/most-run'
 import xs from 'xstream'
 import most from 'most'
 import Rxjs from 'rxjs'
@@ -19,7 +18,7 @@ import test from 'tape'
 const getRandomId = () =>  Math.random(1).toString().slice(4, 8)
 const debug = false
 
-test('Proxying cycle function with single steam sink (not object)', t => {
+test('Dataflow returning single steam', t => {
   const func = ({input$}) => {
     return input$.map(x => x * 2)
   }
@@ -34,7 +33,7 @@ test('Proxying cycle function with single steam sink (not object)', t => {
   }, t.error)
 })
 
-test('Proxing cycle functjion of simple sink object', t => {
+test('Dataflow returning regular sink object', t => {
   const func = ({input$}, rest, rest2) => {
     t.is(rest, 'rest', 'first rest source param should be passed transparently')
     t.is(rest2, 'rest2', 'second rest param should passed transparently')
@@ -52,7 +51,7 @@ test('Proxing cycle functjion of simple sink object', t => {
   }, t.error)
 })
 
-test('Dataflow with sink contains factory function', t => {
+test('Dataflow returning sink that contains stream factory function', t => {
   const dataflow = ({input$}, rest, rest2) => {
     return {
       x: 1,
@@ -80,7 +79,7 @@ test('Dataflow with sink contains factory function', t => {
   }, t.error)
 })
 
-test('Dataflow with sink contains (deep) nested object', t => {
+test('Dataflow returning sink that contains (deep) nested object', t => {
   const dataflow = ({input$}, rest, rest2) => {
     return {
       deep: {
@@ -111,7 +110,42 @@ test('Dataflow with sink contains (deep) nested object', t => {
   }, t.error)
 })
 
-test('Double reload scenario', t => {
+test('Dataflow connected to to multicasted source', t => {
+  const dataflow = ({input$}, rest, rest2) => {
+    return {
+      output$: input$.map(x => x * 20)
+    }
+  }
+  const dataflowReloaded = ({input$}, rest, rest2) => {
+    console.log('')
+    return {
+      output$: input$.map(x => x * 200)
+    }
+  }
+  const proxyId = getRandomId()
+  let dataflowProxy = proxy(dataflow, proxyId)
+  let input$ = O.interval(30).share()
+  let sinks = dataflowProxy({input$})
+  let sink = sinks.output$
+  let reloaded = false
+  setTimeout(() =>  {
+    proxy(dataflowReloaded, proxyId)
+    setTimeout(function(){
+      reloaded = true
+    }, 10)
+  }, 100)
+
+  var sub = sink.subscribe((y) => {
+    if (reloaded){
+      t.ok(y > 100, 'reloaded sink takes last value of shared source')
+      t.end()
+      sub.dispose()
+    }
+  }, t.error)
+})
+
+
+test('Datfalow double reload', t => {
   var proxyId = getRandomId()
 
   const func = ({input$}, rest, rest2) => {
@@ -167,7 +201,7 @@ test('Double reload scenario', t => {
   }, 100)
 })
 
-test('Proxing of non cycle functions', t => {
+test('Transparent proxying for non-dataflows', t => {
   const str = 'str'
   const obj = {a: 1}
   const fn = x => x*2
@@ -252,27 +286,18 @@ const makeRunText = (Cycle, proxy, interval, subscribe = 'subscribe') => (t) => 
 
 }
 
-test('Cycle function with disposal (rx)',
+test('Run dataflow with disposal (rx)',
   makeRunText(RxCycle, rxProxy, O.interval)
 )
 
-test('Cycle function with disposal (rxjs)',
+test('Run dataflow with disposal (rxjs)',
   makeRunText(RxjsCycle, rxjsProxy, Rxjs.Observable.interval)
 )
 
-test('Cycle function with disposal (xstream)',
+test('Run dataflow with disposal (xstream)',
   makeRunText(XsCycle, xsProxy, xs.periodic, 'addListener')
 )
 
-//const MotorCycle = (main, drivers) => {
-//  const {sinks, sources} = motorRun(main, drivers)
-//  const run = () => () => {
-//    sinks.dispose()
-//    sources.dispose()
-//  }
-//  return {sinks, sources, run}
-//}
-//
-//test.only('Cycle function with disposal (motorcycle)',
-//  makeRunText(MotorCycle, most.interval, 'addListener')
+//test.only('Run dataflow with disposal (most)',
+//  makeRunText(MostCycle, mostProxy, () => most.periodic(1000).scan(x => x + 1, 0), 'observe')
 //)
