@@ -30,7 +30,7 @@ keeping the rest application parts not touched
 * Well first you need to use **cycle.js**. Always. If you still don't.
 * Have a great desire to **be more efficient** with your development workflow, 
 HMR is about quick feedback loop while dev process, **you should use it** (did I say it before?).
-* Use [webpack](https://webpack.github.io/) or [broserify](http://browserify.org/) 
+* Use [webpack](https://webpack.github.io/) or [browserify](http://browserify.org/) 
 for modules loading/bundling. 
 Other loaders (e.g [System.js](https://github.com/systemjs/systemjs)) 
 are not tested and not supported yet.
@@ -57,7 +57,7 @@ it **will detect and use needed stream adapter, but you should
 npm install cycle-hmr --save-dev
 ```
 
-Also my need to install adapters, but usually they are installed with your cycle `run` modules (like `@cycle/xstream-run`)
+Also may need to install adapters, but usually they are installed with your cycle `run` modules (like `@cycle/xstream-run`)
 ```
 npm install @cycle/rxjs-adapter @cycle/xstream-adapter --save
 ```
@@ -182,7 +182,7 @@ using this need parts of config:
   plugins: [
     new webpack.NoErrorsPlugin(), // use it
     new webpack.HotModuleReplacementPlugin(),
-    new webpack.IgnorePlugin(/most-adapter/) // for adaperts not installed
+    new webpack.IgnorePlugin(/most-adapter/) // for adapters not installed
   ],
   devServer: {
     hot: true,
