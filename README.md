@@ -1,6 +1,6 @@
 # cycle-hmr
 
-> :fire: **Hot** reloading of [cycle.js](http://http://cycle.js.org) 
+> :fire: **Hot** reloading of [cycle.js](http://cycle.js.org) 
 dataflows without need of *restarting* your app.
 
 ### Demo (editing cyclic component's DOM vtree) 
