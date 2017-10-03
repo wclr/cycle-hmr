@@ -30,7 +30,7 @@ keeping the rest application parts not touched
 * Well first you need to use **cycle.js**. Always. If you still don't.
 * Have a great desire to **be more efficient** with your development workflow, 
 HMR is about quick feedback loop while dev process, **you should use it** (did I say it before?).
-* Use [webpack](https://webpack.github.io/) or [broserify](http://browserify.org/) 
+* Use [webpack](https://webpack.github.io/) or [browserify](http://browserify.org/) 
 for modules loading/bundling. 
 Other loaders (e.g [System.js](https://github.com/systemjs/systemjs)) 
 are not tested and not supported yet.
